@@ -1,0 +1,10 @@
+company_name: "示例公司"
+vouchers_per_page: 2
+start_number: 1
+currency_symbol: "¥"
+amount_precision: 2
+spacing_mm: 8
+margin_mm: 15
+fallback_debit_account: "1002 银行存款"
+fallback_credit_account: "6602 管理费用-其他"
+filter_zero_amounts: true

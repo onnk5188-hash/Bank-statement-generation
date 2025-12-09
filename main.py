@@ -16,40 +16,31 @@ from reportlab.pdfgen import canvas
 def mm_to_pt(value: float) -> float:
     """Convert millimeters to points."""
     return value * mm
-
-
-CH_FONT = "Helvetica"
+CH_FONT = "CNFont"
 
 
 def register_chinese_font():
-    """Register a Chinese-capable font when available.
+    """Register a Chinese TrueType font for voucher rendering.
 
-    Attempts a handful of commonly available fonts on Windows and Linux. If
-    none are found, the program continues using the default Helvetica font
-    while logging a warning so the user can install a supported font.
+    Prefers Windows SimSun first, then SimHei. Prints a warning if neither
+    exists so the caller knows Chinese text might render incorrectly.
     """
 
-    global CH_FONT
-    font_candidates = [
-        # Windows common fonts
-        r"C:\\Windows\\Fonts\\simhei.ttf",
-        r"C:\\Windows\\Fonts\\msyh.ttc",
-        r"C:\\Windows\\Fonts\\simsun.ttc",
-        # Linux common CJK fonts
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/arphic/uming.ttc",
+    font_paths = [
+        r"C:\\Windows\\Fonts\\simsun.ttc",  # 宋体
+        r"C:\\Windows\\Fonts\\simhei.ttf",  # 黑体
     ]
 
-    for path in font_candidates:
+    for path in font_paths:
         if os.path.exists(path):
             try:
-                pdfmetrics.registerFont(TTFont("CNFont", path))
-                CH_FONT = "CNFont"
+                pdfmetrics.registerFont(TTFont(CH_FONT, path))
+                print(f"Using Chinese font: {path}")
                 return
             except Exception as exc:  # pragma: no cover - best-effort font registration
                 print(f"注册中文字体失败 {path}: {exc}")
 
-    print("警告：未找到可用的中文字体，PDF 可能无法正确显示中文。")
+    print("WARNING: no Chinese font file found, Chinese characters may render as squares.")
 
 
 @dataclass
@@ -339,6 +330,8 @@ def main(argv: Optional[List[str]] = None):
     parser = build_argument_parser()
     args = parser.parse_args(argv)
 
+    register_chinese_font()
+
     config = load_config(args.config)
     mapping_rules = load_mapping(args.mapping)
 
@@ -348,8 +341,6 @@ def main(argv: Optional[List[str]] = None):
 
     fallback_debit = config.get("fallback_debit_account", "")
     fallback_credit = config.get("fallback_credit_account", "")
-
-    register_chinese_font()
 
     df = parse_csv(args.input, filter_zero=filter_zero)
     vouchers = build_vouchers(df, mapping_rules, start_number, fallback_debit, fallback_credit)
